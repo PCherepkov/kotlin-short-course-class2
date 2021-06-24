@@ -38,13 +38,15 @@ fun createWindow(title: String) = runBlocking(Dispatchers.Swing) {
 class Renderer(val layer: SkiaLayer): SkiaRenderer {
     val typeface = Typeface.makeFromFile("fonts/JetBrainsMono-Regular.ttf")
     val font = Font(typeface, 40f)
+    val size = 18f
+    val small = Font(typeface, size)
     val paint = Paint().apply {
-        color = 0xff9BC730L.toInt()
+        color = 0xFF00AA00L.toInt()
         mode = PaintMode.FILL
         strokeWidth = 1f
     }
     val clockFill = Paint().apply {
-        color = 0xFFFFFFFF.toInt()
+        color = 0xFFAAAAAA.toInt()
     }
     val clockFillHover = Paint().apply {
         color = 0xFFE4FF01.toInt()
@@ -64,6 +66,10 @@ class Renderer(val layer: SkiaLayer): SkiaRenderer {
         mode = PaintMode.STROKE
         strokeWidth = 3f
     }
+    val clockBackground = Paint().apply {
+        color = 0xFFAAAAAA.toInt()
+        mode = PaintMode.FILL
+    }
 
     @ExperimentalTime
     override fun onRender(canvas: Canvas, width: Int, height: Int, nanoTime: Long) {
@@ -76,6 +82,10 @@ class Renderer(val layer: SkiaLayer): SkiaRenderer {
         val centerY = h/2f
         val clockRadius = min(w, h)/2f - 5
         val tickLen = 15f
+
+        val bg = Rect.makeXYWH(0f, 0f, w.toFloat(), h.toFloat())
+
+        canvas.drawRect(bg, clockBackground)
 
         displayClockFace(canvas, centerX, centerY, clockRadius, tickLen)
 
@@ -111,6 +121,36 @@ class Renderer(val layer: SkiaLayer): SkiaRenderer {
         canvas.drawOval(clockRect, clockStroke)
         clockTicks(canvas, clockStroke, centerX, tickLen/3, centerY, clockRadius, 60)
         clockTicks(canvas, clockStroke, centerX, tickLen, centerY, clockRadius, 12)
+
+        var angle = (Math.PI * 2).toFloat()
+        var addict = 1f
+        while (angle > 0.5f) {
+            addict = if (angle > 3 * Math.PI / 2) 2f else 1f
+            canvas.drawString(
+                "${(angle / (2f * Math.PI) * 12).toInt()}",
+                centerX.toFloat() + (clockRadius * 0.9 * cos(angle - Math.PI / 2)).toFloat() - size / 4 * addict,
+                centerY.toFloat() + (clockRadius * 0.9 * sin(angle - Math.PI / 2)).toFloat() + size / 2, small, clockStroke
+            )
+            angle -= (Math.PI * 2 / 12).toFloat()
+        }
+
+        var n = 5
+        var side = clockRadius
+        angle = (0).toFloat()
+        var x0 = centerX - side / 2
+        var y0 = centerY - side / n
+        x0 = x0 * cos(angle) + y0 * sin(angle)
+        y0 = y0 * cos(angle) - x0 * sin(angle)
+        var x1 = x0
+        var y1 = y0
+        repeat(n) {
+            x1 = x0 + side * cos(angle)
+            y1 = y0 + side * sin(angle)
+            canvas.drawLine(x0, y0, x1, y1, clockStroke)
+            angle += (Math.PI - Math.PI / n).toFloat()
+            x0 = x1
+            y0 = y1
+        }
     }
 
     private fun displayClockHands(canvas: Canvas, centerX: Float, centerY: Float, clockRadius: Float, tickLen: Float,
@@ -134,8 +174,8 @@ class Renderer(val layer: SkiaLayer): SkiaRenderer {
         clockRadius: Float,
         qty: Int
     ) {
-        var angle = 0f
-        while (angle < 2f * Math.PI) {
+        var angle = (2 * Math.PI).toFloat()
+        while (angle > 0) {
             canvas.drawLine(
                 (centerX + (clockRadius - tickLen) * cos(angle)),
                 (centerY - (clockRadius - tickLen) * sin(angle)),
@@ -143,7 +183,7 @@ class Renderer(val layer: SkiaLayer): SkiaRenderer {
                 (centerY - clockRadius * sin(angle)),
                 clockStroke
             )
-            angle += (2.0 * Math.PI / qty).toFloat()
+            angle -= (2.0 * Math.PI / qty).toFloat()
         }
     }
 
